@@ -231,10 +231,17 @@
             }
 
             const audioLocal = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            streams = [meetVideo.captureStream(), audioLocal];
+
+            const ctx = new AudioContext();
+            const dest = ctx.createMediaStreamDestination();
+            ctx.createMediaStreamSource(audioLocal).connect(dest);
+            const audiosMixados = new MediaStream(dest.stream.getTracks())
+
+
+            streams = [meetVideo.captureStream(), audiosMixados];
             const mixer = new MultiStreamsMixer(streams);
             mixer.startDrawingFrames();
-            const mixedStream = mixer.getMixedStream();
+            let mixedStream = mixer.getMixedStream();
             output.srcObject = mixedStream;
             output.play();
 
@@ -242,9 +249,21 @@
                 console.log('tentando add novo stream')
                 setTimeout(() => {
                     console.log('ADD AGORA!!!!!!!!!');
-                    const atualParticipants = document.querySelectorAll("video[id*='remoteVideo']")
-                    atualParticipants.forEach(video => mixer.appendStreams(document.getElementById(video.id).captureStream()))
-                }, 7000);
+                    const atualParticipants = [meetVideo.captureStream()]
+                    document.querySelectorAll("video[id*='remoteVideo']").forEach((video) => {
+                        //console.log(document.getElementById(video.id).captureStream());
+                        atualParticipants.push(document.getElementById(video.id).captureStream())
+                    })
+                    document.querySelectorAll("audio[id*='remoteAudio']").forEach((audio) => {
+                        console.log(document.getElementById(audio.id));
+                        ctx.createMediaStreamSource(document.getElementById(audio.id).captureStream()).connect(dest);
+                        //audioMixer = new MultiStreamsMixer([audioLocal, document.getElementById(audio.id).captureStream()])
+                        //audioVisitante.srcObject = document.getElementById(audio.id).captureStream()
+                        //mixer.appendStreams(document.getElementById(audio.id).captureStream())
+                    })
+                    console.log(atualParticipants);
+                    mixer.resetVideoStreams(atualParticipants)
+                }, 8000);
                 
             };
 
@@ -255,7 +274,7 @@
                 setTimeout(() => {
                     console.log('TIRANDO AGORA!!!!');
                     mixer.resetVideoStreams([meetVideo.captureStream()]);
-                }, 7000);
+                }, 8000);
             };
 
             recorder = RecordRTC(mixedStream, {
@@ -281,7 +300,7 @@
                 output.srcObject = null;
                 output.src = URL.createObjectURL(blob);
                 output.muted = false;
-                output.loop = true;
+                output.loop = false;
                 output.play();
             });
         };
@@ -297,6 +316,22 @@
             a.remove();
             URL.revokeObjectURL(url);
         };
+
+        // function mixer(stream1, stream2) {
+        //     const ctx = new AudioContext();
+        //     const dest = ctx.createMediaStreamDestination();
+            
+        //     if(stream1.getAudioTracks().length > 0)
+        //         ctx.createMediaStreamSource(stream1).connect(dest);
+            
+        //     if(stream2.getAudioTracks().length > 0)
+        //         ctx.createMediaStreamSource(stream2).connect(dest);
+            
+        //     let tracks = dest.stream.getTracks();
+        //     //tracks = tracks.concat(stream1.getVideoTracks()).concat(stream2.getVideoTracks());
+            
+        //     return new MediaStream(tracks)
+        // }
             
                 
     </script>
