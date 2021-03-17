@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <div style="position: absolute; display: inline-flex; z-index: 20; top: 0; left: 25px;">
+        <button onclick="prepara()">PREPARA</button>
+        <button id="start-record-button">Start Record</button>
+        <button id="stop-record-button">Stop Record</button>
+        <button id="download-button">Download</button>
+        <button id="btnAppendNewStreams">ADD</button>
+        <button id="btnStopScreenSharing">REMOVE</button>
+        <video id="output" muted></video>
+    </div>
+    <script src='https://www.webrtc-experiment.com/RecordRTC.js'></script>
+    <script src='https://www.webrtc-experiment.com/MultiStreamsMixer.js'></script>
+    <script>
+        let streams = null;
+        let recorder = null;
+        let participants = document.querySelectorAll("video[id*='remoteVideo']")
+
+
+        async function prepara() {
+            const meetVideo = document.querySelector('#localVideo_container')
+            const output = document.querySelector('#output')
+
+            const ws = new WebSocket('wss://meet.jpbx.com.br:8000/ws/meets');
+            ws.onopen = (event) => {
+                ws.send(JSON.stringify({type: 'REGISTER', side: 'SERVER', room: window.location.pathname}))
+            }
+            ws.onmessage = (event) => {
+                const e = JSON.parse(event.data)
+                switch (e.message) {
+                    case 'JOIN':
+                        addParticipantOnRecord()
+                        break;
+                    case 'LEAVE':
+                        removeParticipantFromRecord()
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            const audioLocal = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+            const ctx = new AudioContext();
+            const dest = ctx.createMediaStreamDestination();
+            ctx.createMediaStreamSource(audioLocal).connect(dest);
+            const audiosMixados = new MediaStream(dest.stream.getTracks())
+
+
+            streams = [meetVideo.captureStream(), audiosMixados];
+            const mixer = new MultiStreamsMixer(streams);
+            mixer.startDrawingFrames();
+            let mixedStream = mixer.getMixedStream();
+            output.srcObject = mixedStream;
+            output.play();
+
+            function addParticipantOnRecord() {
+                console.log('tentando add novo stream')
+                setTimeout(() => {
+                    console.log('ADD AGORA!!!!!!!!!');
+                    const atualParticipants = [meetVideo.captureStream()]
+                    document.querySelectorAll("video[id*='remoteVideo']").forEach((video) => {
+                        //console.log(document.getElementById(video.id).captureStream());
+                        atualParticipants.push(document.getElementById(video.id).captureStream())
+                    })
+                    document.querySelectorAll("audio[id*='remoteAudio']").forEach((audio) => {
+                        console.log(document.getElementById(audio.id));
+                        ctx.createMediaStreamSource(document.getElementById(audio.id).captureStream()).connect(dest);
+                        //audioMixer = new MultiStreamsMixer([audioLocal, document.getElementById(audio.id).captureStream()])
+                        //audioVisitante.srcObject = document.getElementById(audio.id).captureStream()
+                        //mixer.appendStreams(document.getElementById(audio.id).captureStream())
+                    })
+                    console.log(atualParticipants);
+                    mixer.resetVideoStreams(atualParticipants)
+                }, 8000);
+                
+            };
+
+            function removeParticipantFromRecord() {
+                // replace all old streams with this one
+                // it will replace only video tracks
+                console.log('tentando tirar')
+                setTimeout(() => {
+                    console.log('TIRANDO AGORA!!!!');
+                    mixer.resetVideoStreams([meetVideo.captureStream()]);
+                }, 8000);
+            };
+
+            recorder = RecordRTC(mixedStream, {
+                type: "video",
+                mimeType: "video/webm",
+                checkForInactiveTracks: true,
+                previewStream: function (s) {
+                    output.srcObject = s;
+                    output.play();
+                }
+            });
+            
+        }
+
+        document.querySelector("#start-record-button").onclick = () => {
+            recorder.startRecording();
+        };
+
+        document.querySelector("#stop-record-button").onclick = () => {
+            //left.pause();
+            recorder.stopRecording(() => {
+                var blob = recorder.getBlob();
+                output.srcObject = null;
+                output.src = URL.createObjectURL(blob);
+                output.muted = false;
+                output.loop = false;
+                output.play();
+            });
+        };
+
+        document.querySelector("#download-button").onclick = () => {
+            const blob = recorder.getBlob();
+            const url = URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = "dance.webm";
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        };
+
+        // function mixer(stream1, stream2) {
+        //     const ctx = new AudioContext();
+        //     const dest = ctx.createMediaStreamDestination();
+            
+        //     if(stream1.getAudioTracks().length > 0)
+        //         ctx.createMediaStreamSource(stream1).connect(dest);
+            
+        //     if(stream2.getAudioTracks().length > 0)
+        //         ctx.createMediaStreamSource(stream2).connect(dest);
+            
+        //     let tracks = dest.stream.getTracks();
+        //     //tracks = tracks.concat(stream1.getVideoTracks()).concat(stream2.getVideoTracks());
+            
+        //     return new MediaStream(tracks)
+        // }
+            
+                
+    </script>
+  </body>
+</html>
