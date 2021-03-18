@@ -1,26 +1,140 @@
 <!DOCTYPE html>
 <html>
+    <style>
+        .alert{
+            background: #ffdb9b;
+            padding: 20px 40px;
+            min-width: 420px;
+            position: absolute;
+            right: 0;
+            top: 10px;
+            border-radius: 4px;
+            border-left: 8px solid #ffa502;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .alert.showAlert{
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .alert.show{
+            animation: show_slide 1s ease forwards;
+        }
+        @keyframes show_slide {
+            0%{
+                transform: translateX(100%);
+            }
+            40%{
+                transform: translateX(-10%);
+            }
+            80%{
+                transform: translateX(0%);
+            }
+            100%{
+                transform: translateX(-10px);
+            }
+        }
+        .alert.hide{
+            animation: hide_slide 1s ease forwards;
+        }
+        @keyframes hide_slide {
+            0%{
+                transform: translateX(-10px);
+            }
+            40%{
+                transform: translateX(0%);
+            }
+            80%{
+                transform: translateX(-10%);
+            }
+            100%{
+                transform: translateX(100%);
+            }
+        }
+        .alert .fa-exclamation-circle{
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ce8500;
+            font-size: 30px;
+        }
+        .alert .msg{
+            padding: 0 20px;
+            font-size: 18px;
+            color: #ce8500;
+        }
+        .alert .close-btn{
+            position: absolute;
+            right: 0px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #ffd080;
+            padding: 20px 18px;
+            cursor: pointer;
+        }
+        .alert .close-btn:hover{
+            background: #ffc766;
+        }
+        .alert .close-btn .fas{
+            color: #ce8500;
+            font-size: 22px;
+            line-height: 40px;
+        }
+        .div-botoes{
+            position: absolute;
+            display: inline-flex;
+            z-index: 20;
+            top: 10px;
+            left: 25px;
+        }
+        .btn-grava{
+            padding: 8px 16px;
+            font-size: 20px;
+            font-weight: 500;
+            border-radius: 4px;
+            border: none;
+            outline: none;
+            background: #e69100;
+            color: white;
+            letter-spacing: 1px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+    </style>
   <body>
-    <div style="position: absolute; display: inline-flex; z-index: 20; top: 0; left: 25px;">
-        <button onclick="prepara()">PREPARA</button>
-        <button id="start-record-button">Start Record</button>
-        <button id="stop-record-button">Stop Record</button>
-        <button id="download-button">Download</button>
-        <button id="btnAppendNewStreams">ADD</button>
-        <button id="btnStopScreenSharing">REMOVE</button>
-        <video id="output" muted></video>
+<!--    <div style="position: absolute; display: inline-flex; z-index: 20; top: 0; left: 25px;">-->
+    <div class="div-botoes">
+        <button id="btn-grava" class="btn-grava">Iniciar Gravação</button>
+        <button id="download-button" class="btn-grava" hidden>Download</button>
+<!--        <video id="output" muted></video>-->
+    </div>
+    <div style="position: absolute; display: inline-flex; z-index: 20;" class="alert hide">
+        <span class="fas fa-exclamation-circle"></span>
+        <span class="msg">Gravacao habilitada!</span>
+        <div class="close-btn">
+            <span class="fas fa-times"></span>
+        </div>
     </div>
     <script src='https://www.webrtc-experiment.com/RecordRTC.js'></script>
     <script src='https://www.webrtc-experiment.com/MultiStreamsMixer.js'></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <script>
         let streams = null;
         let recorder = null;
+        const btnGrava = document.querySelector('#btn-grava')
+        const alert = document.querySelector('.alert')
+        const alertMsg = document.querySelector('.msg')
+        const closeAlertBtn = document.querySelector('.close-btn')
+        const downloadBtn = document.querySelector("#download-button")
 
-
-        async function prepara() {
+        window.onload = async () => {
             const meetVideo = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
             // const meetVideo = document.querySelector('#largeVideo')
-            const output = document.querySelector('#output')
+            //const output = document.querySelector('#output')
+
+            showAlert('Gravação habilitada!')
 
             const ws = new WebSocket('wss://meet.jpbx.com.br:8000/ws/meets');
             ws.onopen = (event) => {
@@ -51,9 +165,9 @@
             streams = [meetVideo, audiosMixados];
             const mixer = new MultiStreamsMixer(streams);
             mixer.startDrawingFrames();
-            let mixedStream = mixer.getMixedStream();
-            output.srcObject = mixedStream;
-            output.play();
+            const mixedStream = mixer.getMixedStream();
+            // output.srcObject = mixedStream;
+            // output.play();
 
             function addParticipantOnRecord() {
                 console.log('tentando add novo stream')
@@ -92,33 +206,39 @@
 
             recorder = RecordRTC(mixedStream, {
                 type: "video",
-                mimeType: "video/webm",
-                checkForInactiveTracks: true,
-                previewStream: function (s) {
-                    output.srcObject = s;
-                    output.play();
-                }
+                mimeType: "video/webm"
+                // checkForInactiveTracks: true,
+                // previewStream: function (s) {
+                //     output.srcObject = s;
+                //     output.play();
+                // }
             });
             
         }
 
-        document.querySelector("#start-record-button").onclick = () => {
+        btnGrava.onclick = startRecord
+        function startRecord(){
             recorder.startRecording();
+            btnGrava.textContent = 'Parar Gravação'
+            btnGrava.onclick = stopRecord
         };
 
-        document.querySelector("#stop-record-button").onclick = () => {
-            //left.pause();
+        function stopRecord(){
+            btnGrava.textContent = 'Iniciar Gravação'
+            btnGrava.onclick = startRecord
+            downloadBtn.removeAttribute('hidden')
             recorder.stopRecording(() => {
-                var blob = recorder.getBlob();
-                output.srcObject = null;
-                output.src = URL.createObjectURL(blob);
-                output.muted = false;
-                output.loop = false;
-                output.play();
+                // var blob = recorder.getBlob();
+                // output.srcObject = null;
+                // output.src = URL.createObjectURL(blob);
+                // output.muted = false;
+                // output.loop = false;
+                // output.play();
             });
         };
 
-        document.querySelector("#download-button").onclick = () => {
+        downloadBtn.onclick = () => {
+            showAlert('Preparando download...')
             const blob = recorder.getBlob();
             const url = URL.createObjectURL(blob);
             let a = document.createElement("a");
@@ -129,6 +249,24 @@
             a.remove();
             URL.revokeObjectURL(url);
         };
+
+        function showAlert(msg) {
+            alertMsg.textContent = msg
+            alert.classList.add('show')
+            // btnGrava.disabled = true
+            // btnGrava.textContent = 'Gravando'
+            // btnGrava.classList.add('button-apagado')
+            alert.classList.remove('hide')
+            alert.classList.add('showAlert')
+            setTimeout(function(){
+                alert.classList.remove('show')
+                alert.classList.add('hide')
+            },10000);
+        };
+        closeAlertBtn.onclick = () => {
+            alert.classList.remove('show')
+            alert.classList.add('hide')
+        }
                 
     </script>
   </body>
