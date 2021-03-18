@@ -129,10 +129,22 @@
         const closeAlertBtn = document.querySelector('.close-btn')
         const downloadBtn = document.querySelector("#download-button")
 
+
         window.onload = async () => {
             const meetVideo = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
             // const meetVideo = document.querySelector('#largeVideo')
             //const output = document.querySelector('#output')
+
+            function pegaTodosVideosStreams() {
+                const atualParticipantsStreams = []
+                document.querySelectorAll("video[id*='remoteVideo']").forEach((video) => {
+                    console.log(document.getElementById(video.id).captureStream());
+                    atualParticipantsStreams.push(document.getElementById(video.id).captureStream())
+                })
+                const participantsArray = [meetVideo]
+                return participantsArray.concat(atualParticipantsStreams)
+                //mixer.resetVideoStreams(participantsArray.concat(atualParticipantsStreams))
+            }
 
             showAlert('Gravação habilitada!')
 
@@ -160,9 +172,16 @@
             const dest = ctx.createMediaStreamDestination();
             ctx.createMediaStreamSource(audioLocal).connect(dest);
             const audiosMixados = new MediaStream(dest.stream.getTracks())
+            addAudio()
 
+            function addAudio() {
+                document.querySelectorAll("audio[id*='remoteAudio']").forEach((audio) => {
+                    //console.log(document.getElementById(audio.id));
+                    ctx.createMediaStreamSource(document.getElementById(audio.id).captureStream()).connect(dest);
+                })
+            }
 
-            streams = [meetVideo, audiosMixados];
+            streams = [audiosMixados].concat(pegaTodosVideosStreams());
             const mixer = new MultiStreamsMixer(streams);
             mixer.startDrawingFrames();
             const mixedStream = mixer.getMixedStream();
@@ -171,36 +190,22 @@
 
             function addParticipantOnRecord() {
                 console.log('tentando add novo stream')
+                showAlert('Adicionando video a gravação, aguarde...')
                 setTimeout(() => {
                     console.log('ADD AGORA!!!!!!!!!');
-                    document.querySelectorAll("audio[id*='remoteAudio']").forEach((audio) => {
-                        //console.log(document.getElementById(audio.id));
-                        ctx.createMediaStreamSource(document.getElementById(audio.id).captureStream()).connect(dest);
-                    })
-                    const atualParticipantsStreams = []
-                    document.querySelectorAll("video[id*='remoteVideo']").forEach((video) => {
-                        console.log(document.getElementById(video.id).captureStream());
-                        atualParticipantsStreams.push(document.getElementById(video.id).captureStream())
-                    })
-                    const participantsArray = [meetVideo]
-                    mixer.resetVideoStreams(participantsArray.concat(atualParticipantsStreams))
+                    addAudio()
+                    mixer.resetVideoStreams(pegaTodosVideosStreams())
                 }, 8000);
                 
             };
+
 
             function removeParticipantFromRecord() {
                 // replace all old streams with this one
                 // it will replace only video tracks
                 console.log('tentando tirar')
                 setTimeout(() => {
-                    const atualParticipantsStreams = []
-                    document.querySelectorAll("video[id*='remoteVideo']").forEach((video) => {
-                        console.log(document.getElementById(video.id).captureStream());
-                        atualParticipantsStreams.push(document.getElementById(video.id).captureStream())
-                    })
-                    console.log('TIRANDO AGORA!!!!');
-                    const participantsArray = [meetVideo]
-                    mixer.resetVideoStreams(participantsArray.concat(atualParticipantsStreams))
+                    mixer.resetVideoStreams(pegaTodosVideosStreams())
                 }, 8000);
             };
 
@@ -221,6 +226,7 @@
             recorder.startRecording();
             btnGrava.textContent = 'Parar Gravação'
             btnGrava.onclick = stopRecord
+            downloadBtn.setAttribute('hidden', 'true')
         };
 
         function stopRecord(){
