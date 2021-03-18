@@ -15,11 +15,11 @@
     <script>
         let streams = null;
         let recorder = null;
-        let participants = document.querySelectorAll("video[id*='remoteVideo']")
 
 
         async function prepara() {
-            const meetVideo = document.querySelector('#localVideo_container')
+            const meetVideo = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+            // const meetVideo = document.querySelector('#largeVideo')
             const output = document.querySelector('#output')
 
             const ws = new WebSocket('wss://meet.jpbx.com.br:8000/ws/meets');
@@ -48,7 +48,7 @@
             const audiosMixados = new MediaStream(dest.stream.getTracks())
 
 
-            streams = [meetVideo.captureStream(), audiosMixados];
+            streams = [meetVideo, audiosMixados];
             const mixer = new MultiStreamsMixer(streams);
             mixer.startDrawingFrames();
             let mixedStream = mixer.getMixedStream();
@@ -59,20 +59,17 @@
                 console.log('tentando add novo stream')
                 setTimeout(() => {
                     console.log('ADD AGORA!!!!!!!!!');
-                    const atualParticipants = [meetVideo.captureStream()]
-                    document.querySelectorAll("video[id*='remoteVideo']").forEach((video) => {
-                        //console.log(document.getElementById(video.id).captureStream());
-                        atualParticipants.push(document.getElementById(video.id).captureStream())
-                    })
                     document.querySelectorAll("audio[id*='remoteAudio']").forEach((audio) => {
-                        console.log(document.getElementById(audio.id));
+                        //console.log(document.getElementById(audio.id));
                         ctx.createMediaStreamSource(document.getElementById(audio.id).captureStream()).connect(dest);
-                        //audioMixer = new MultiStreamsMixer([audioLocal, document.getElementById(audio.id).captureStream()])
-                        //audioVisitante.srcObject = document.getElementById(audio.id).captureStream()
-                        //mixer.appendStreams(document.getElementById(audio.id).captureStream())
                     })
-                    console.log(atualParticipants);
-                    mixer.resetVideoStreams(atualParticipants)
+                    const atualParticipantsStreams = []
+                    document.querySelectorAll("video[id*='remoteVideo']").forEach((video) => {
+                        console.log(document.getElementById(video.id).captureStream());
+                        atualParticipantsStreams.push(document.getElementById(video.id).captureStream())
+                    })
+                    const participantsArray = [meetVideo]
+                    mixer.resetVideoStreams(participantsArray.concat(atualParticipantsStreams))
                 }, 8000);
                 
             };
@@ -82,8 +79,14 @@
                 // it will replace only video tracks
                 console.log('tentando tirar')
                 setTimeout(() => {
+                    const atualParticipantsStreams = []
+                    document.querySelectorAll("video[id*='remoteVideo']").forEach((video) => {
+                        console.log(document.getElementById(video.id).captureStream());
+                        atualParticipantsStreams.push(document.getElementById(video.id).captureStream())
+                    })
                     console.log('TIRANDO AGORA!!!!');
-                    mixer.resetVideoStreams([meetVideo.captureStream()]);
+                    const participantsArray = [meetVideo]
+                    mixer.resetVideoStreams(participantsArray.concat(atualParticipantsStreams))
                 }, 8000);
             };
 
