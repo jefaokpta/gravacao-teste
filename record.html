@@ -106,7 +106,8 @@
   <body>
 <!--    <div style="position: absolute; display: inline-flex; z-index: 20; top: 0; left: 25px;">-->
     <div class="div-botoes">
-        <button id="btn-grava" class="btn-grava">Iniciar Gravação</button>
+        <img id="recordIcon" src="static/record.gif" width="50px" height="50px" style="opacity: 0.5;" hidden>
+        <button id="btn-grava" class="btn-grava" hidden>Iniciar Gravação</button>
         <button id="download-button" class="btn-grava" hidden>Download</button>
 <!--        <video id="output" muted></video>-->
     </div>
@@ -128,9 +129,28 @@
         const alertMsg = document.querySelector('.msg')
         const closeAlertBtn = document.querySelector('.close-btn')
         const downloadBtn = document.querySelector("#download-button")
+        const recordIcon = document.querySelector("#recordIcon")
+        let addParticipantOnRecord
+        let removeParticipantFromRecord
+        let isRecording = false
 
-
-        window.onload = async () => {
+        window.addEventListener("message", (event) => {
+            console.log('FROM CLIENT')
+            // console.log(event)
+                if(event.data.message)
+                    switch (event.data.message) {
+                        case 'JOIN':
+                            addParticipantOnRecord()
+                            break;
+                        case 'LEAVE':
+                            removeParticipantFromRecord()
+                            break;
+                        case 'ACTIVE_RECORD':
+                            preparaGravacao()
+                            break;
+                    }
+        })
+        async function preparaGravacao(){
             const meetVideo = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
             // const meetVideo = document.querySelector('#largeVideo')
             //const output = document.querySelector('#output')
@@ -147,24 +167,8 @@
             }
 
             showAlert('Gravação habilitada!')
+            btnGrava.removeAttribute('hidden')
 
-            const ws = new WebSocket('wss://meet.jpbx.com.br:8000/ws/meets');
-            ws.onopen = (event) => {
-                ws.send(JSON.stringify({type: 'REGISTER', side: 'SERVER', room: window.location.pathname}))
-            }
-            ws.onmessage = (event) => {
-                const e = JSON.parse(event.data)
-                switch (e.message) {
-                    case 'JOIN':
-                        addParticipantOnRecord()
-                        break;
-                    case 'LEAVE':
-                        removeParticipantFromRecord()
-                        break;
-                    default:
-                        break;
-                }
-            }
 
             const audioLocal = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
@@ -188,11 +192,12 @@
             // output.srcObject = mixedStream;
             // output.play();
 
-            function addParticipantOnRecord() {
-                console.log('tentando add novo stream')
-                showAlert('Adicionando video a gravação, aguarde...')
+            addParticipantOnRecord = () => {
+                console.log('Tentando add novo video')
+                if(isRecording)
+                    showAlert('Adicionando vídeo a gravação, aguarde...')
                 setTimeout(() => {
-                    console.log('ADD AGORA!!!!!!!!!');
+                    console.log('Adicionado');
                     addAudio()
                     mixer.resetVideoStreams(pegaTodosVideosStreams())
                 }, 8000);
@@ -200,11 +205,12 @@
             };
 
 
-            function removeParticipantFromRecord() {
+            removeParticipantFromRecord = () => {
                 // replace all old streams with this one
                 // it will replace only video tracks
-                console.log('tentando tirar')
+                console.log('Tentando retirar video')
                 setTimeout(() => {
+                    console.log('Retirado Video')
                     mixer.resetVideoStreams(pegaTodosVideosStreams())
                 }, 8000);
             };
@@ -227,12 +233,16 @@
             btnGrava.textContent = 'Parar Gravação'
             btnGrava.onclick = stopRecord
             downloadBtn.setAttribute('hidden', 'true')
+            isRecording = true
+            recordIcon.removeAttribute('hidden')
         };
 
         function stopRecord(){
             btnGrava.textContent = 'Iniciar Gravação'
             btnGrava.onclick = startRecord
             downloadBtn.removeAttribute('hidden')
+            isRecording = false
+            recordIcon.setAttribute('hidden', 'true')
             recorder.stopRecording(() => {
                 // var blob = recorder.getBlob();
                 // output.srcObject = null;
@@ -259,9 +269,6 @@
         function showAlert(msg) {
             alertMsg.textContent = msg
             alert.classList.add('show')
-            // btnGrava.disabled = true
-            // btnGrava.textContent = 'Gravando'
-            // btnGrava.classList.add('button-apagado')
             alert.classList.remove('hide')
             alert.classList.add('showAlert')
             setTimeout(function(){
