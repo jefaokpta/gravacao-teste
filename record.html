@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html>
     <style>
+        /*@import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');*/
+        /**{*/
+        /*  font-family: 'Poppins', sans-serif;*/
+        /*}*/
         .alert{
-            background: #ffdb9b;
-            padding: 20px 40px;
-            min-width: 420px;
+            background: #68bdad;
+            padding: 10px 40px;
+            min-width: 250px;
             position: absolute;
             right: 0;
             top: 10px;
             border-radius: 4px;
-            border-left: 8px solid #ffa502;
+            border-left: 8px solid #227b69;
             overflow: hidden;
             opacity: 0;
             pointer-events: none;
@@ -57,29 +61,30 @@
             left: 20px;
             top: 50%;
             transform: translateY(-50%);
-            color: #ce8500;
-            font-size: 30px;
+            color: #fff;
+            font-size: 0.8em;
         }
         .alert .msg{
             padding: 0 20px;
-            font-size: 18px;
-            color: #ce8500;
+            font-size: 0.8em;
+            color: #fff;
         }
         .alert .close-btn{
             position: absolute;
             right: 0px;
             top: 50%;
             transform: translateY(-50%);
-            background: #ffd080;
+            background: #5e8e84;
             padding: 20px 18px;
             cursor: pointer;
+            font-size: 0.8em;
         }
         .alert .close-btn:hover{
-            background: #ffc766;
+            background: #227b69;
         }
         .alert .close-btn .fas{
-            color: #ce8500;
-            font-size: 22px;
+            color: #fff;
+            font-size: 0.8em;
             line-height: 40px;
         }
         .div-botoes{
@@ -90,13 +95,14 @@
             left: 25px;
         }
         .btn-grava{
+            /*font: Arial,Sans-Serif;*/
             padding: 8px 16px;
-            font-size: 20px;
+            font-size: 0.8em;
             font-weight: 500;
-            border-radius: 4px;
+            border-radius: 7px;
             border: none;
             outline: none;
-            background: #e69100;
+            background: #9b385d;
             color: white;
             letter-spacing: 1px;
             cursor: pointer;
@@ -106,7 +112,7 @@
   <body>
 <!--    <div style="position: absolute; display: inline-flex; z-index: 20; top: 0; left: 25px;">-->
     <div class="div-botoes">
-        <img id="recordIcon" src="static/record.gif" width="50px" height="50px" style="opacity: 0.5;" hidden>
+        <img id="recordIcon" src="static/record.gif" width="32px" height="32px" style="opacity: 0.5;" hidden>
         <button id="btn-grava" class="btn-grava" hidden>Iniciar Gravação</button>
         <button id="download-button" class="btn-grava" hidden>Download</button>
 <!--        <video id="output" muted></video>-->
